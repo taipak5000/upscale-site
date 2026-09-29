@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>画像サイズ拡大ツール</title>
+  <meta name="description" content="小さすぎて使えない画像を、倍率・ピクセル数・印刷サイズを指定して大きくします。処理はすべてブラウザ内で行い、画像はどこにも送信しません。">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img class="mark" src="icon.svg" alt="" width="40" height="40">
+      <div>
+        <h1>画像サイズ拡大ツール</h1>
+        <p class="lead">小さすぎる画像を、必要なピクセル数まで引き伸ばします。画像はこの端末の中だけで処理され、外部には送信されません。</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel controls" aria-label="設定">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="image/*" multiple class="vh">
+        <span class="drop-icon" aria-hidden="true">＋</span>
+        <strong>画像を選ぶ</strong>
+        <span class="drop-sub">ここにドロップ、またはクリック / <kbd>Ctrl</kbd>+<kbd>V</kbd> で貼り付け（複数可）</span>
+      </label>
+
+      <div class="thumbs-wrap" id="thumbsWrap" hidden>
+        <div class="thumbs" id="thumbs"></div>
+        <button type="button" class="link-btn" id="clearAll">すべて外す</button>
+      </div>
+
+      <fieldset class="group">
+        <legend>サイズの決め方</legend>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="mode" value="scale" checked><span>倍率</span></label>
+          <label><input type="radio" name="mode" value="px"><span>ピクセル数</span></label>
+          <label><input type="radio" name="mode" value="print"><span>印刷サイズ</span></label>
+        </div>
+
+        <div class="pane" data-pane="scale">
+          <div class="chips" id="scaleChips">
+            <button type="button" data-scale="1.5">1.5倍</button>
+            <button type="button" data-scale="2">2倍</button>
+            <button type="button" data-scale="3">3倍</button>
+            <button type="button" data-scale="4">4倍</button>
+            <button type="button" data-scale="8">8倍</button>
+          </div>
+          <label class="field">
+            <span>倍率</span>
+            <span class="with-unit"><input type="number" id="scale" value="2" min="0.1" max="64" step="0.1" inputmode="decimal"><span class="unit">倍</span></span>
+          </label>
+        </div>
+
+        <div class="pane" data-pane="px" hidden>
+          <label class="field">
+            <span>基準</span>
+            <select id="pxBase">
+              <option value="long">長い辺をこの長さに</option>
+              <option value="short">短い辺をこの長さに</option>
+              <option value="width">幅をこの長さに</option>
+              <option value="height">高さをこの長さに</option>
+              <option value="box">幅と高さを両方指定</option>
+            </select>
+          </label>
+          <div class="sub" data-sub="single">
+            <div class="chips" id="pxChips">
+              <button type="button" data-px="1080">1080</button>
+              <button type="button" data-px="1920">1920</button>
+              <button type="button" data-px="2048">2048</button>
+              <button type="button" data-px="3840">3840</button>
+              <button type="button" data-px="4096">4096</button>
+            </div>
+            <label class="field">
+              <span>長さ</span>
+              <span class="with-unit"><input type="number" id="pxValue" value="1920" min="1" max="16384" step="1" inputmode="numeric"><span class="unit">px</span></span>
+            </label>
+          </div>
+          <div class="sub" data-sub="box" hidden>
+            <div class="chips" id="boxChips">
+              <button type="button" data-box="1080x1080">1080×1080</button>
+              <button type="button" data-box="1920x1080">1920×1080</button>
+              <button type="button" data-box="1200x630">1200×630</button>
+              <button type="button" data-box="3840x2160">3840×2160</button>
+            </div>
+            <div class="row2">
+              <label class="field">
+                <span>幅</span>
+                <span class="with-unit"><input type="number" id="boxW" value="1920" min="1" max="16384" step="1" inputmode="numeric"><span class="unit">px</span></span>
+              </label>
+              <label class="field">
+                <span>高さ</span>
+                <span class="with-unit"><input type="number" id="boxH" value="1080" min="1" max="16384" step="1" inputmode="numeric"><span class="unit">px</span></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="pane" data-pane="print" hidden>
+          <label class="field">
+            <span>用紙</span>
+            <select id="paper">
+              <option value="a4">A4（210×297mm）</option>
+              <option value="a3">A3（297×420mm）</option>
+              <option value="a5">A5（148×210mm）</option>
+              <option value="b5">B5（182×257mm）</option>
+              <option value="b4">B4（257×364mm）</option>
+              <option value="hagaki">はがき（100×148mm）</option>
+              <option value="l">L判（89×127mm）</option>
+              <option value="2l">2L判（127×178mm）</option>
+              <option value="custom">自由に入力</option>
+            </select>
+          </label>
+          <div class="row2">
+            <label class="field">
+              <span>幅</span>
+              <span class="with-unit"><input type="number" id="mmW" value="210" min="1" max="2000" step="0.1" inputmode="decimal"><span class="unit">mm</span></span>
+            </label>
+            <label class="field">
+              <span>高さ</span>
+              <span class="with-unit"><input type="number" id="mmH" value="297" min="1" max="2000" step="0.1" inputmode="decimal"><span class="unit">mm</span></span>
+            </label>
+          </div>
+          <div class="chips" id="dpiChips">
+            <button type="button" data-dpi="150">150dpi</button>
+            <button type="button" data-dpi="300">300dpi</button>
+            <button type="button" data-dpi="350">350dpi</button>
+            <button type="button" data-dpi="600">600dpi</button>
+          </div>
+          <label class="field">
+            <span>解像度</span>
+            <span class="with-unit"><input type="number" id="dpi" value="350" min="1" max="2400" step="1" inputmode="numeric"><span class="unit">dpi</span></span>
+          </label>
+          <label class="check"><input type="checkbox" id="autoRotate" checked> 画像の縦横に合わせて用紙を回転する</label>
+        </div>
+
+        <div class="fit" id="fitRow" hidden>
+          <p class="mini-label">縦横比が合わないとき</p>
+          <div class="seg seg-3" role="radiogroup">
+            <label><input type="radio" name="fit" value="contain" checked><span>余白を付ける</span></label>
+            <label><input type="radio" name="fit" value="cover"><span>はみ出しを切る</span></label>
+            <label><input type="radio" name="fit" value="stretch"><span>引き伸ばす</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>拡大のしかた</legend>
+        <div class="options">
+          <label class="opt"><input type="radio" name="method" value="lanczos3" checked>
+            <span><b>くっきり</b><small>写真・イラスト全般。輪郭を保って拡大</small></span></label>
+          <label class="opt"><input type="radio" name="method" value="bicubic">
+            <span><b>なめらか</b><small>グラデーションや肌をやわらかく</small></span></label>
+          <label class="opt"><input type="radio" name="method" value="nearest">
+            <span><b>ドット絵</b><small>ピクセルをそのまま四角く大きく</small></span></label>
+        </div>
+        <label class="field range" id="sharpenRow">
+          <span>シャープ <output id="sharpenVal">30</output></span>
+          <input type="range" id="sharpen" min="0" max="100" value="30">
+        </label>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>保存形式</legend>
+        <label class="field">
+          <span>形式</span>
+          <select id="format">
+            <option value="auto">元の画像と同じ</option>
+            <option value="png">PNG（劣化なし・透明OK）</option>
+            <option value="jpeg">JPEG（軽い・写真向け）</option>
+            <option value="webp">WebP（軽い・透明OK）</option>
+          </select>
+        </label>
+        <label class="field range" id="qualityRow" hidden>
+          <span>画質 <output id="qualityVal">92</output></span>
+          <input type="range" id="quality" min="40" max="100" value="92">
+        </label>
+        <div class="row2 bg-row">
+          <label class="field">
+            <span>余白・背景の色</span>
+            <input type="color" id="bg" value="#ffffff">
+          </label>
+          <label class="check" id="transparentRow"><input type="checkbox" id="transparent"> 余白を透明に</label>
+        </div>
+        <label class="field" id="dpiMetaRow">
+          <span>dpi情報を書き込む（任意）</span>
+          <span class="with-unit"><input type="number" id="dpiMeta" placeholder="例: 350" min="1" max="2400" step="1" inputmode="numeric"><span class="unit">dpi</span></span>
+        </label>
+      </fieldset>
+    </section>
+
+    <section class="panel preview" aria-label="プレビュー">
+      <div class="info" id="info">
+        <p class="info-main">画像を選ぶと、ここに拡大後のサイズとプレビューが出ます。</p>
+      </div>
+
+      <div class="viewbar">
+        <div class="seg seg-small" role="radiogroup" aria-label="表示倍率">
+          <label><input type="radio" name="zoom" value="fit" checked><span>全体</span></label>
+          <label><input type="radio" name="zoom" value="actual"><span>原寸</span></label>
+        </div>
+        <label class="split-ctl">
+          <span>元画像</span>
+          <input type="range" id="split" min="0" max="100" value="50" aria-label="元画像と拡大後の比較位置">
+          <span>拡大後</span>
+        </label>
+      </div>
+
+      <div class="viewport" id="viewport">
+        <div class="empty" id="empty">
+          <p>ここにプレビューが表示されます</p>
+        </div>
+        <div class="stage" id="stage" hidden>
+          <div class="after" id="after"></div>
+          <div class="before-clip" id="beforeClip">
+            <div class="before-box" id="beforeBox"><img id="beforeImg" alt="元画像"></div>
+          </div>
+          <div class="split-line" aria-hidden="true"></div>
+          <span class="tag tag-l">元画像</span>
+          <span class="tag tag-r">拡大後</span>
+        </div>
+        <div class="busy" id="busy" hidden>
+          <div class="bar"><i id="barFill"></i></div>
+          <span id="busyText">処理中…</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn primary" id="saveBtn" disabled>この画像を保存</button>
+        <button type="button" class="btn" id="zipBtn" hidden>すべて保存（ZIP）</button>
+        <button type="button" class="btn" id="shareBtn" hidden>共有・写真に保存</button>
+      </div>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>拡大は周りの画素から中間の色を計算して補う方式です。元画像にない細部までは復元できませんが、「サイズが足りずにアップロードできない」「入稿で解像度が足りない」といった場面には十分使えます。</p>
+    <p>一度開けばオフラインでも使えます。</p>
+  </footer>
+
+  <div class="drag-cover" id="dragCover" aria-hidden="true"><p>ドロップして読み込む</p></div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
